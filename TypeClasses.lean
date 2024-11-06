@@ -189,3 +189,4 @@ def eight'' : Pos := 8
 
 
 -- exercise in TypeClassesExercise.lean
+#print Pos
