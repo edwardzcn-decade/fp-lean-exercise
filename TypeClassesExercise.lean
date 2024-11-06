@@ -143,8 +143,6 @@ instance : ToString HttpStatusCode where
 
 
 def test_http_status : HttpStatusCode := 200
-#eval test_http_status
-
 
 
 -- HttpResponse
@@ -180,6 +178,7 @@ def handleRequest (req : HttpRequest) : IO HttpResponse :=
   match req.method with
   | HttpMethod.get => do
     -- in get operation
+    -- TODO cat file
     if req.uri ∈ getUriList then
       pure { statusCode := 200, statusMessage := "OK" }
     else
@@ -187,39 +186,54 @@ def handleRequest (req : HttpRequest) : IO HttpResponse :=
 
   | HttpMethod.post =>
     -- in post operation
+    -- TODO mkdir or rename
     if req.uri ∈ postUriList then
       pure { statusCode := 200, statusMessage := "OK" }
     else
       pure { statusCode := 404, statusMessage := "Not Found" }
 
 class HttpMethodHandler (α : Type) where
-  handle : HttpRequest → IO HttpResponse
+  handle : α → IO HttpResponse
 
--- instance : HttpMethodHandler HttpRequest HttpResponse where
---   handler := handleRequest
-
-
+instance : HttpMethodHandler HttpRequest where
+  handle := handleRequest -- handleRequest is a function
 
 
 
+instance : ToString HttpRequest where
+  toString req := s!"[HTTP REQUEST] {req.method.getName} {req.uri} HTTP/{req.version}"
+instance : ToString HttpResponse where
+  toString res := s!"[HTTP RESPONSE] {res.statusCode} {res.statusMessage}"
 
 
--- instance : Handler HttpRequest HttpResponse where
---   handler := handleRequest
--- instance : ToString HttpRequest where
---   toString req := s!"[HTTP REQUEST] {req.method.getName} {req.uri} HTTP/{req.version}"
--- instance : ToString HttpResponse where
---   toString res := s!"[HTTP RESPONSE] {res.statusCode} {res.statusMessage}"
+def printHelpMessage : IO Unit := do
+  IO.println "HTTP Server"
+  IO.println "Usage: handle [METHOD][URL]"
+  IO.println "Method:\n\t-g\t--get\tGET\n\t-p\t--post\tPOST\n\t-h\t--help\tDisplay this help message"
+  IO.println "URL:\n\t/\t/index\t/about\t/archive\t/contact"
 
--- def main (args: List String) : IO UInt32 :=
---   match args with
---   | [] => pure 0
---   | args =>
---     match args.head! with
---     | "-h" | "--help" => do
---       IO.println "Usage: handle [METHOD][URL]"
---       IO.println "Method:\n\t-g\t--get:\tGET\n\t-p\t--post:\tPOST"
---       IO.println "-h\t--help\tDisplay this help message"
---       IO.println "URL:\n\t/\t/index\t/about\t/archive\t/contact"
---       pure 0
---     | "-g" | "--get" => do
+def buildRequest (method : HttpMethod) (uri : Uri) : HttpRequest :=
+  { method := method, uri := uri, version := 2 }
+
+def test_args := ["-g", "/archive"]
+
+def main : IO UInt32 :=
+  match test_args with
+  | [] => pure 0
+  | args =>
+    match args.head! with
+    | "-h" | "--help" => do
+      printHelpMessage
+      pure 0
+    | "-g" | "--get" => do
+      let url := args[1]?
+      match url with
+      | none => do
+        IO.println "URL is required"
+        pure 1
+      | some url =>
+        let req : HttpRequest := buildRequest HttpMethod.get url
+        let res ← HttpMethodHandler.handle req
+        IO.println res
+        pure 0
+    | _ => pure 0
