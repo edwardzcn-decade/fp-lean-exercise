@@ -85,7 +85,10 @@ def posToString' (_ : Bool) (p : Pos) : String :=
 instance : ToString Pos where
   toString := posToString' true
 
+#eval s!"There are {Pos.one}"
+#eval s!"There are {Pos.succ Pos.one}"
 #eval s!"There are {six''}"
+
 
 
 def Pos.toNat : Pos → Nat
@@ -100,8 +103,11 @@ def Pos.toFloat : Pos → Float
   | Pos.one => 1.0
   | Pos.succ n => Pos.toFloat n + 1.0
 instance : ToString Pos where
-  toString x := toString (x.toFloat) -- call other ToString instance named as toString
-  -- trans Pos → String apply on Pos to Float → String apply on Float
+  toString x := toString (x.toFloat)
+-- left part: toString x, give an instance for toString: Pos → String apply on x: Pos
+-- right part: toString (x.toFloat), calculate toString: Float → String applyed on x.toFloat: Float (expand toFloat x, calling Pos → Float applyed on x: Pos)
+-- left type: Pos → String [ Pos ] => String
+-- right type: Float → String [ Pos → Float [ Float ] ] => Float → String [ Float ] => String
 #eval s!"There are {six''}"
 
 def Pos.mul : Pos → Pos → Pos
