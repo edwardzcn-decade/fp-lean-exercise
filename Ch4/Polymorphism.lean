@@ -96,29 +96,31 @@ instance : Mul Even where
   mul := mulEven
 
 #eval println!"There are\n8\t{even2 * even4}\n10\t{even2 * even4 + even2}"
+
+
+-- not a good answer
+-- another way? just like use `let rec` in instance OfNat Pos (n + 1)
+--
+-- instance : OfNat Even n where
+--   ofNat :=
+--     let rec aux (n: Nat) : Even := match n with
+--       | 0 => Even.zero
+--       | 1 => panic! "Impossible"
+--       | n + 2 => Even.succ (aux n)
+--     aux n
+
 instance : OfNat Even Nat.zero where
   ofNat := Even.zero
 
-instance (n : Nat) [OfNat Even n] : OfNat Even (Nat.succ n) where
+instance (n : Nat) [OfNat Even n] : OfNat Even (n + 2) where
   ofNat := Even.succ (OfNat.ofNat n)
 
--- Recursive Instance Search:
 
--- This part is a typeclass constraint. It requires that there must already be an instance of `OfNat Even n` available.
--- This is the recursive part: it ensures that the specific instance for `Nat.succ n` depends on the specific instance of `n`
-
-
--- Recursive Instance Search Depth (limit search depth)
--- try even 99999990
--- def test_even: Even := 99999990
-
--- try even 20000
--- def test_even: Even := 128
--- failed to synthesize
---   OfNat Even 128
--- numerals are polymorphic in Lean, but the numeral `128` cannot be used in a context where the expected type is
---   Even
--- due to the absence of the instance above
--- Additional diagnostic information may be available using the `set_option diagnostics true` command.
-def test_even: Even := 126
+def test_even_0: Even := 0
+def test_even_2: Even := 2
+#eval test_even_2
+-- def test_even_1: Even := 1 -- absence of the instance above (correct)
+def test_even_254: Even := 254
+-- def test_even_256: Even := 256 --absence of the instance above (due to recursive search limit)
 -- OK
+-- #eval test_even_254 -- ok

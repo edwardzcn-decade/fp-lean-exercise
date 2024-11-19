@@ -5,6 +5,8 @@ import Ch2.Feline
 import Ch3.PropProof
 import Ch4.PosTypeClasses
 import Ch4.HttpHandlerExercise
+import Ch4.OutParams
+
 
 #check zip -- in Chapter 1
 #check process -- in Chapter 2
