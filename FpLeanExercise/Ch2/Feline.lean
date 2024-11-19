@@ -67,25 +67,3 @@ theorem onePlusOneIsTwo'' : 1 + 1 = 2 := by
   simp
 #check (onePlusOneIsTwo' : Prop)
 -- #check (onePlusOneIsTwo : Prop) --error type mismatch
-
-
-def main (args: List String) : IO UInt32 :=
-  let test_file := "./test"
-  match args with
-  | [] => process 0 ["-"]
-  | args =>
-    match args.head! with
-    | "-h" => do
-      IO.println "Usage: cat [FILE]..."
-      IO.println "-h\tDisplay this help message"
-      IO.println "-d\tUse the default file name './test'"
-      pure 0
-    | "-d" => process 0 [test_file]
-    | _ => process 0 args
-    -- here is ok but leave the stream still open
-
-    -- dump done solve the see the output
-
-
-
-  -- IO.println s!"Hello, cats}!"

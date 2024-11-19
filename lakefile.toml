@@ -1,0 +1,10 @@
+name = "fp-lean-exercise"
+version = "0.1.0"
+defaultTargets = ["fp-lean-exercise"]
+
+[[lean_lib]]
+name = "FpLeanExercise"
+
+[[lean_exe]]
+name = "fp-lean-exercise"
+root = "Main"
