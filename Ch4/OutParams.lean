@@ -14,22 +14,22 @@ import Ch4.PosTypeClasses
 
 -- Heterogeneous Overloading
 #check @HAdd.hAdd
-def addPosNat : Pos → Nat → Pos
-  | p, 0 => p
-  | p, n + 1 => addPosNat (p + 1) n --tail recursive?
-
 def addPosNat' : Pos → Nat → Pos
   | p, 0 => p
-  | p, n + 1 => Pos.succ (addPosNat' p n) -- not tail recursive? eq to (addPosNat' p n) + 1
+  | p, n + 1 => addPosNat' (p + 1) n --tail recursive?
 
-def addNatPos : Nat → Pos → Pos
+def addPosNat'' : Pos → Nat → Pos
+  | p, 0 => p
+  | p, n + 1 => Pos.succ (addPosNat'' p n) -- not tail recursive? eq to (addPosNat' p n) + 1
+
+def addNatPos' : Nat → Pos → Pos
   | 0, p => p
-  | n + 1, p => addNatPos n (p + 1)
+  | n + 1, p => addNatPos' n (p + 1)
 
 instance : HAdd Pos Nat Pos where
-  hAdd := addPosNat
+  hAdd := addPosNat'
 instance : HAdd Nat Pos Pos where
-  hAdd := addNatPos
+  hAdd := addNatPos'
 
 
 
@@ -48,9 +48,9 @@ class HPlus (α : Type) (β : Type) (γ : Type) where
   hPlus : α → β → γ
 
 instance : HPlus Pos Nat Pos where
-  hPlus := addPosNat
+  hPlus := addPosNat'
 instance : HPlus Nat Pos Pos where
-  hPlus := addNatPos
+  hPlus := addNatPos'
 #check HPlus.hPlus (3 : Pos) (5 : Nat) -- we will see a metavariabele
 -- #eval HPlus.hPlus (3 : Pos) (5 : Nat) --  typeclass instance problem
 -- give specific output type

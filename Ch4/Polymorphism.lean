@@ -1,3 +1,4 @@
+import Ch1.Polymorphism
 -- Function that work on any overloading of kind of function
 -- IO.println works on sort? of [ToString α] (any type that has an instance of ToString)
 #check (IO.println)
@@ -22,15 +23,6 @@ instance : OfNat String 0 where
   ofNat := ""
 #eval List.together ["a", "b", "c", "d"]
 
-structure PPoint (α : Type) where
-ppoint::
-  x : α
-  y : α
-deriving Repr
-
-def p1 := PPoint.ppoint 1 2
-def p2 := PPoint.ppoint 0 2
-#eval p1
 
 
 -- without instance implicits
@@ -48,7 +40,7 @@ instance [Add α] : Add (PPoint α) where
   add p1 p2 := addPPoint p1 p2
 instance [Add α] : Add (PPoint α) where
   add p1 p2 := PPoint.ppoint (p1.x + p2.x) (p2.x + p2.y)
-#eval p1 + p2
+
 
 #check Fin.add -- check a structure's accessors
 
