@@ -79,11 +79,14 @@ def aux' (atTop :Bool) (p : Pos) : String :=
   match p with
   | Pos.one => "Pos.one"
   | Pos.succ p' => aux atTop s!"Pos.succ {aux' false p'}"
-def posToString' (_ : Bool) (p : Pos) : String :=
-  aux' false p
+
 
 instance : ToString Pos where
-  toString := posToString' true
+  toString s:= aux' true s
+
+-- should equal to
+instance : ToString Pos where
+  toString := posToString true
 
 #eval s!"There are {Pos.one}"
 #eval s!"There are {Pos.succ Pos.one}"
