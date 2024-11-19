@@ -3,7 +3,16 @@ version = "0.1.0"
 defaultTargets = ["fp-lean-exercise"]
 
 [[lean_lib]]
-name = "FpLeanExercise"
+name = "Ch1"
+
+[[lean_lib]]
+name = "Ch2"
+
+[[lean_lib]]
+name = "Ch3"
+
+[[lean_lib]]
+name = "Ch4"
 
 [[lean_exe]]
 name = "fp-lean-exercise"

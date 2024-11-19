@@ -1,11 +1,10 @@
--- import FpLeanExercise.Ch1.Basic
--- import FpLeanExercise.Ch1.Datatypes
--- import FpLeanExercise.Ch1.Polymorphism
--- import FpLeanExercise.Ch2.Feline
--- import FpLeanExercise.Ch3.PropProof
--- import FpLeanExercise.Ch4.PosTypeClasses
--- import FpLeanExercise.Ch4.HttpHandlerExercise
-import «FpLeanExercise»
+import Ch1.Basic
+import Ch1.Datatypes
+import Ch1.Polymorphism
+import Ch2.Feline
+import Ch3.PropProof
+import Ch4.PosTypeClasses
+import Ch4.HttpHandlerExercise
 
 #check zip -- in Chapter 1
 #check process -- in Chapter 2
@@ -16,7 +15,7 @@ import «FpLeanExercise»
 
 
 def testHttpHandler : IO Unit := do
-  let aux_f := fun (base: System.FilePath) (chap: String) (fname: String)=> base.toString ++ "/FpLeanExercise/" ++ chap ++ "/" ++ fname
+  let aux_f := fun (base: System.FilePath) (chap: String) (fname: String)=> base.toString ++ "/" ++ chap ++ "/" ++ fname
   let cwd: System.FilePath ← IO.currentDir
   IO.println s!"Current working directory:{cwd}"
   let chapter := "Ch4"
@@ -48,7 +47,7 @@ def testHttpHandler : IO Unit := do
 
 def testFeline (args: List String) : IO UInt32 := do
   let test_file ← IO.currentDir
-  let test_file := test_file.toString ++ "/FpLeanExercise/Ch2/test1.txt"
+  let test_file := test_file.toString ++ "/Ch2/test1.txt"
   match args with
   | [] => process 0 ["-"]
   | args =>
