@@ -35,16 +35,16 @@ def NonEmptyList.get {α : Type} (xs : NonEmptyList α) (i : Nat) (ok : xs.inBou
 -- how to trans to a proof version
 
 --
--- class GetElem' (coll : Type) (idx : Type) (item : outParam Type) (inBounds : outParam (coll → idx → Prop)) where
---   getElem' : (c : coll) → (i : idx) → inBounds c i → item
--- instance : GetElem' (NonEmptyList α) Nat α NonEmptyList.inBounds where
---   getElem' := NonEmptyList.get
-
 class GetElem' (coll : Type) (idx : Type) (item : outParam Type) (inBounds : outParam (coll → idx → Prop)) where
-  getElem : (c : coll) → (i : idx) → inBounds c i → item
-instance : GetElem' (NonEmptyList α) Nat α (λ coll idx => coll.inBounds idx) where
-  getElem := NonEmptyList.get
+  getElem' : (c : coll) → (i : idx) → inBounds c i → item
+instance : GetElem' (NonEmptyList α) Nat α NonEmptyList.inBounds where
+  getElem' := NonEmptyList.get
 
-#eval GetElem'.getElem idahoSpiders 0 (by decide)
-#eval GetElem'.getElem idahoSpiders 1 (by decide)
+-- class GetElem' (coll : Type) (idx : Type) (item : outParam Type) (inBounds : outParam (coll → idx → Prop)) where
+--   getElem‘ : (c : coll) → (i : idx) → inBounds c i → item
+-- instance : GetElem' (NonEmptyList α) Nat α (λ coll idx => coll.inBounds idx) where
+--   getElem' := NonEmptyList.get
+#check GetElem'.getElem'
+#eval GetElem'.getElem' idahoSpiders 0 (by decide)
+#eval GetElem'.getElem' idahoSpiders 1 (by decide)
 -- #eval GetElem'.getElem idahoSpiders 5 (by decide) --fail for the bounder
