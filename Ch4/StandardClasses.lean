@@ -1,5 +1,6 @@
 import Ch4.Polymorphism
 import Ch4.PosTypeClasses
+import Ch4.Indexing
 #check 2<4
 -- def test_boolean_equality := if 2 < 4 then 4 else 2 --ok
 -- def test_propositional_equality := if ((fun x : Nat => x + 1) = (Nat.succ ·)) then "yes" else "no" -- failed to synthesize Decidable ((fun x => x + 1) = fun x => x.succ)
@@ -173,5 +174,50 @@ instance [Hashable α] : Hashable (BinTree α) where
 #check List.append
 #check @Append.append
 #check @HAppend.hAppend
+
+#eval (. + 5) <$> [1, 2, 3] -- [6, 7, 8]
+#print NonEmptyList
+#check Functor
+#check Functor.map
+#eval List.toString <$> (some (List.cons 5 List.nil))
+-- func sig a → b, both `a` `b` belong to Type u level
+-- map sig  (a → b) → (f α → f β)  !!! `f α` with Type v level compare to `α` with Type u level.
+
+instance : Functor NonEmptyList where
+  map f nl := {head := f nl.head, tail := f <$> nl.tail}  -- List already have instance of Functor
+
+instance : Functor PPoint where
+  map f pp := {x := f pp.x, y:= f pp.y}
+
+#eval Functor.mapConst "33" [0,1,2,3]
+#eval Functor.mapConst (0: Float) ["hi" , "change" , "me" ,"all", "to" , "0.00 : Float"]
+
+-- Consider the signature of mapConst
+#check Functor.map -- Functor.map.{u, v} {f : Type u → Type v} [self : Functor f] {α β : Type u} : (α → β) → f α → f β
+#check Functor.mapConst -- Functor.mapConst.{u, v} {f : Type u → Type v} [self : Functor f] {α β : Type u} : α → f β → f α
+-- Considering write mapConst sign as β → f α → f β, you may have a better comprehension.
+-- Check default mapConst for more detail. Think about why
+-- mapConst : {α β : Type u} → α → f β → f α := Function.comp map (Function.const _)
+
+-- Default method definition.
+-- However, instance implementors may choose to override this default with something more efficient. Default method definitions contain := in a class definition. (just like mapConst above)
+
+
+-- the example given textbook (provide another implementation of mapConst)
+def Functor.mapConst'{α β : Type u} {f : Type u → Type v} [Functor f] (x : α) (coll : f β) : f α :=
+    Functor.map (fun _ => x) coll
+
+
+#check LawfulFunctor.map_const
+    -- Functor.mapConst = Functor.map ∘ Function.const β
+
+theorem eqMapConst' [Functor f] [LawfulFunctor f]  (x : α) (_: b) (coll : f β): Functor.mapConst x coll = Functor.mapConst' x coll := by
+  rw [LawfulFunctor.map_const]
+  simp
+  unfold Functor.mapConst'
+  unfold Function.const
+  rfl
+
+theorem switch_to_honors : 2110+2 = 2112 := by simp
 
 -- TODO 4.5 exercise
