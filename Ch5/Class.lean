@@ -1,0 +1,1 @@
+-- Monad Class Type
