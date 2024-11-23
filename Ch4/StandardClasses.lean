@@ -221,3 +221,52 @@ theorem eqMapConst' [Functor f] [LawfulFunctor f]  (x : α) (_: b) (coll : f β)
 theorem switch_to_honors : 2110+2 = 2112 := by simp
 
 -- TODO 4.5 exercise
+
+--  Write an instance of HAppend (List α) (NonEmptyList α) (NonEmptyList α) and test it.
+
+#print NonEmptyList
+
+def NonEmptyList.reverse {α : Type} : NonEmptyList α → NonEmptyList α
+  | {head := h, tail := t} => match t.reverse with
+    | [] => {head := h, tail := []}
+    | x:: xs => {head := x, tail := xs ++ [h]}
+
+
+#eval NonEmptyList.reverse {head := 1, tail := [2, 3, 4]}
+#eval HAppend.hAppend [1, 2, 3] [4,5,6]
+
+def NonEmptyList.toList {α : Type} : NonEmptyList α → List α
+  | {head := h, tail := t} => h :: t
+
+def happendListNonEmptyList {α : Type} (l : List α) (nel : NonEmptyList α) : NonEmptyList α :=
+  match l with
+  | [] => nel
+  | x:: xs => {head := x, tail := xs ++ nel.toList}
+
+
+
+instance : HAppend (List α) (NonEmptyList α) (NonEmptyList α) where
+  hAppend := happendListNonEmptyList
+
+def t_list := [1,2,3]
+def t_nelist : NonEmptyList Nat := {head := 4, tail := [5,6]}
+#eval t_list ++ t_nelist
+#eval [1, 2, 3] ++ {head := 7, tail := [3, 2] : NonEmptyList Nat}
+
+-- Implement a Functor instance for the binary tree datatype.
+#print BinTree
+
+def functionOnBTree {α β: Type} (f : α → β) (bt: BinTree α) : BinTree β :=
+  match bt with
+  | BinTree.leaf => BinTree.leaf
+  | BinTree.node l v r => BinTree.node (functionOnBTree f l) (f v) (functionOnBTree f r)
+
+instance : Functor BinTree where
+  map := functionOnBTree
+
+-- FAIL inline
+-- instance : Functor BinTree where
+--   map f bt :=
+--     match bt with
+--     | BinTree.leaf => BinTree.leaf
+--     | BinTree.node l v r => BinTree.node (f <$> l) (f v) (f <$> r)

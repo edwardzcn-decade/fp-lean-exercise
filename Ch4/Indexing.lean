@@ -3,6 +3,7 @@
 structure NonEmptyList (α : Type) : Type where
   head : α
   tail : List α
+deriving Repr
 
 def idahoSpiders : NonEmptyList String := {
   head := "Banded Garden Spider",
