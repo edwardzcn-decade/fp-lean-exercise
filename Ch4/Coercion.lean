@@ -75,20 +75,20 @@ def foldMap' (M : Monoid) (f : α → M.Carrier) (xs : List α) : M.Carrier :=
 
 
 -- try proof?
--- theorem eqFoldMapOnMonoid  (M : Monoid) (f: α → M.Carrier) (xs : List α) :   foldMap M f xs = foldMap' M f xs := by
---   unfold foldMap
---   unfold foldMap'
---   induction xs with
---     | nil =>
---       -- Base case, both are immediately the neutral element
---       unfold foldMap.aux
---       unfold foldMap'.go
---       rfl
---     | cons x xs ih =>
---       -- Inductive step
---       unfold foldMap.aux
---       unfold foldMap'.go
---    --- fail
+theorem eqFoldMapOnMonoid  (M : Monoid) (f: α → M.Carrier) (xs : List α) :   foldMap M f xs = foldMap' M f xs := by
+  unfold foldMap
+  unfold foldMap'
+  induction xs with
+    | nil =>
+      -- Base case, both are immediately the neutral element
+      unfold foldMap.aux
+      unfold foldMap'.go
+      rfl
+    | cons x xs ih =>
+      -- Inductive step
+      unfold foldMap.aux
+      unfold foldMap'.go
+      sorry --fail
 
 instance : CoeSort Monoid Type where
   coe := Monoid.Carrier
