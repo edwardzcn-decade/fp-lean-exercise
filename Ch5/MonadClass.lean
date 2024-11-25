@@ -42,6 +42,7 @@ def getThirdFourth : List α → Option (α × α) :=
 inductive Result (ε : Type) (α : Type) where
 | ok (x: α) : Result ε α
 | error (e : ε) : Result ε α
+deriving Repr
 
 #check List.get?
 
@@ -296,3 +297,147 @@ def postorderSum : BinTree Nat → WithLog Nat Nat
 
 #eval preorderSum exampleTree
 #eval postorderSum exampleTree
+
+
+-- Monads: A Functional Design Pattern
+-- Each of these examples has consisted of:
+
+-- A polymorphic type, such as Option, Except ε, WithLog logged, or State σ
+-- An operator andThen that takes care of some repetitive aspect of sequencing programs that have this type ↑
+-- An operator ok that is (in some sense) the most boring way to use the type
+-- A collection of other operations, such as none, fail, save, and get, that name ways of using the type
+
+
+-- the trivial ok op to use this type and the andThen op dont need to re reimplementation
+
+-- check Monad class defination
+
+#check Monad
+-- class Monad (m : Type u → Type v) extends Applicative m, Bind m : Type (max (u+1) v) where
+--   map      f x := bind x (Function.comp pure f)
+--   seq      f x := bind f fun y => Functor.map y (x ())
+--   seqLeft  x y := bind x fun a => bind (y ()) (fun _ => pure a)
+--   seqRight x y := bind x fun _ => y ()
+
+instance : Monad Option where
+  pure x := some x
+  bind opt f := match opt with
+    | none => none
+    | some x => f x
+
+
+
+instance : Monad (Result ε) where
+  pure x := Result.ok x
+  bind res f := match res with
+    | Result.error e => Result.error e
+    | Result.ok x => f x
+
+
+def getFirstThirdFourth : List α → Option (α × α × α) :=
+  fun l =>
+  l[0]? >>= fun first =>
+  l[2]? >>= fun third =>
+  l[3]? >>= fun fourth =>
+  pure (first, third, fourth)
+
+-- give an example
+#eval getFirstThirdFourth [1,2,3,4,5] -- some (1, 3, 4)
+
+
+-- lookup represent the way to pick up the element to Monad
+def firstThirdFifthSeventh [Monad m] (lookup : List α → Nat → m α) (xs : List α) : m (α × α × α × α) :=
+  lookup xs 0 >>= fun first =>
+  lookup xs 2 >>= fun third =>
+  lookup xs 4 >>= fun fifth =>
+  lookup xs 6 >>= fun seventh =>
+  pure (first, third, fifth, seventh)
+
+def slowMammals : List String :=
+  ["Three-toed sloth", "Slow loris"]
+
+def fastBirds : List String := [
+  "Peregrine falcon",
+  "Saker falcon",
+  "Golden eagle",
+  "Gray-headed albatross",
+  "Spur-winged goose",
+  "Swift",
+  "Anna's hummingbird"
+]
+
+
+-- instance search for Monad Option because xs[i] for xs : List return Option
+#eval firstThirdFifthSeventh (fun xs i => xs[i]?) slowMammals
+#eval firstThirdFifthSeventh (fun xs i => xs[i]?) fastBirds
+
+-- try result
+#eval firstThirdFifthSeventh (fun xs i => List.getResult i xs) fastBirds
+
+def kindOfGeneral [Monad m] (f : α → m β) (xs : List α) : m (List β) :=
+  match xs with
+    | [] => pure []
+    | x :: xs' =>
+      f x >>= fun x' =>
+      kindOfGeneral f xs' >>= fun xs'' =>
+      pure (x' :: xs'')
+
+-- is actually mapM
+def mapM [Monad m] (f : α → m β) : List α → m (List β)
+  | [] => pure []
+  | x :: xs =>
+    f x >>= fun hd =>
+    mapM f xs >>= fun tl =>
+    pure (hd :: tl)
+-- observion : compare to firstThirdFifthSeventh
+-- more general f?
+-- but design to return (List β) instead of independent type γ (also requires input as List sequence)
+
+-- general on all Monad (input and output as List)
+-- a little different from firstThirdFifthSeventh because use f: List α → m β  (actually the List α is the parameter of entrance)  instead of f: α → m β
+
+-- represent the state change of value
+def State (σ : Type) (α : Type) : Type :=
+  σ → (σ × α)
+
+def ok_state(x: α) : State σ α := fun s => (s, x)
+def set_state(s: σ) : State σ Unit := fun _ => (s, ())
+def get_state : State σ σ := fun s => (s, s)
+--- well..... consider take func as polymorphic type in the Monad
+
+-- instance : Monad (State σ) where
+--   pure x := fun s => (s, x)  -- function type define (comparing Sum Type and Product Type)
+--   bind state f := fun s =>  -- function type
+--     let (s', a) := state s
+--     f a s'
+
+
+instance : Monad (State σ) where
+  pure x := fun s => (s, x)
+  bind first next :=
+    fun s =>
+      let (s', x) := first s
+      next x s'
+
+def increment (howMuch : Int) : State Int Int := -- and save prefix sum (not included) in new state
+  get_state >>= fun i =>
+  set_state (i + howMuch) >>= fun () =>
+  pure i
+
+-- α → m β  here is Int → State Int Int
+#eval mapM increment [1, 2, 3, 4, 5] 0
+
+instance : Monad (WithLog logged) where
+  pure x := {log := [], val := x}
+  bind result next :=
+    let {log := thisOut, val := thisRes} := result
+    let {log := nextOut, val := nextRes} := next thisRes
+    {log := thisOut ++ nextOut, val := nextRes}
+
+def saveIfEven (i : Int) : WithLog Int Int :=
+  (if isEven i then
+    save i
+   else pure ()) >>= fun () =>
+  pure i
+
+#eval mapM saveIfEven [1, 2, 3, 4, 5]
