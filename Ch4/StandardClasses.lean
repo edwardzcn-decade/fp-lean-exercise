@@ -142,11 +142,9 @@ theorem exampleTreeBound: exampleTree.notEmpty := by
 
 def exampleLeaf : BinTree Nat :=
   BinTree.leaf
-theorem exampleLeafBound: exampleLeaf.notEmpty := by
+theorem exampleLeafBound: exampleLeaf.notEmpty = False:= by
   unfold exampleLeaf
   simp
-  sorry
-  -- False can not prove!
 -- #eval BinTree.selectTop exampleLeaf --wrong  -- can not give bound/evidence because we canot prove
 
 

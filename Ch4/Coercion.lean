@@ -88,7 +88,7 @@ theorem eqFoldMapOnMonoid  (M : Monoid) (f: α → M.Carrier) (xs : List α) :  
       -- Inductive step
       unfold foldMap.aux
       unfold foldMap'.go
-      sorry --fail
+      sorry
 
 instance : CoeSort Monoid Type where
   coe := Monoid.Carrier

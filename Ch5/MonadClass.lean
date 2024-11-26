@@ -444,8 +444,61 @@ def saveIfEven (i : Int) : WithLog Int Int :=
    else pure ()) >>= fun () =>
   pure i
 
+-- The identity monad
+def Id' (t : Type) : Type := t -- guess construct t=t?
+
+instance : Monad Id' where
+  pure x := x
+  bind x f := f x
+  -- bind : {α β : Type} → Id' α → (α → Id' β) → Id' β
+  -- reduce to (may beta-reduction in Category Theory)  α → (α → Id' β) → β
+
+
 #eval mapM saveIfEven [1, 2, 3, 4, 5]
 
+#eval mapM (m := Id) (· + 1) [1, 2, 3, 4, 5]
+-- explicitly given to find Monad instance as Id instance
+
+def test_id_f1 := fun x => x + 1 -- can be recognized as α → Monad β with Id instance
+
+def test_id_f2 := fun (_: Int) => "test"
+
+-- #eval mapM (· + 1) [1, 2, 3, 4, 5]
+  -- failed to synthesize
+  -- HAdd Nat Nat (?m.32590 ?m.32592)
+
+-- #eval mapM test_id_f1 [1, 2, 3, 4, 5]
+-- typeclass instance problem is stuck, it is often due to metavariables
+--   Monad ?m.32590
+
+-- #eval mapM test_id_f2 [1, 2, 3, 4, 5]
+-- typeclass instance problem is stuck, it is often due to metavariables
+--   Monad ?m.32590
+#eval mapM (m := Id') test_id_f2 [1, 2, 3, 4, 5]
+-- ["test", "test", "test", "test", "test"]
+-- ✌️ now we use mapM as map
+
+
+-- The Monad Contract
+-- 1. First, `pure` should be a left identity of bind, `bind (pure v) f` should be the same as f v`
+-- 2. Secondly, `pure` should be a right identity of bind, so `bind v pure` is the same as v. Finally, `bind` should be associative, so `bind (bind v f) g` is the same as `bind v (fun x => bind (f x) g)`.
+
+-- `bind (bind v f) g` is the same as `bind v (fun x => bind (f x) g)`.  need deeper understanding
+-- try infix expression?
+
+
+-- Create a combination of bind op chains
+-- expalin in Option Monad
+
+-- Bind As Lazy Chaining
+-- 	1.	bind as Lazy Chaining:
+-- bind can be interpreted as a lazy chaining operator that connects computations within a monadic context. This deferred approach ensures computations are performed only when absolutely necessary.
+-- 	2.	Benefits of Lazy Chaining:
+-- 	•	It prevents wasteful evaluations, particularly in contexts like Option (to short-circuit unnecessary calculations) or asynchronous computations (to defer costly operations).
+-- 	•	It enables flexible recomposition of binding chains, which is crucial for complex dependency management.
+-- 	•	It guarantees associativity by allowing operations to be rearranged or grouped without impacting the final result. This ensures consistency in the behavior of the Monadic operations, even in non-trivial pipelines such as nested bind calls.
+
+-- This abstraction makes bind particularly well-suited for modeling workflows that involve asynchronous processing, error handling, or managing dependencies dynamically.
 
 -- Exercise Ch5.1
 -- Review the previous definition of mapM (on List seque)
@@ -554,10 +607,7 @@ instance : Monad Option where
     | none => none
     | some x => f x
 
-theorem left_identity_pure_for_option (x : α) (f: α → Option β) : bind (pure x) f = f x := by
-  rw [Option.pure_def]
-  unfold bind
-  -- sorry
+theorem left_identity_pure_for_option (x : α) (f: α → Option β) : bind (pure x) f = f x := by rfl
 
 -- But we get to know why
 -- instance : Monad Option where
@@ -568,60 +618,19 @@ theorem left_identity_pure_for_option (x : α) (f: α → Option β) : bind (pur
 
 
 theorem right_identity_pure_for_option (x: Option α) : bind x pure = x := by
-  sorry
+  cases x
+  {
+    rfl
+  }
+  {
+    rfl
+  }
 
-theorem associative_bind_for_for_option (x : α) (f: α → Option β) (g: β → Option γ) : bind (bind x f) g = bind x (fun y => bind (f y) g) := by
-  sorry
-
--- The identity monad
-def Id' (t : Type) : Type := t -- guess construct t=t?
-
-instance : Monad Id' where
-  pure x := x
-  bind x f := f x
-  -- bind : {α β : Type} → Id' α → (α → Id' β) → Id' β
-  -- reduce to (may beta-reduction in Category Theory)  α → (α → Id' β) → β
-
-#eval mapM (m := Id) (· + 1) [1, 2, 3, 4, 5]
--- explicitly given to find Monad instance as Id instance
-
-def test_id_f1 := fun x => x + 1 -- can be recognized as α → Monad β with Id instance
-
-def test_id_f2 := fun (_: Int) => "test"
-
--- #eval mapM (· + 1) [1, 2, 3, 4, 5]
-  -- failed to synthesize
-  -- HAdd Nat Nat (?m.32590 ?m.32592)
-
--- #eval mapM test_id_f1 [1, 2, 3, 4, 5]
--- typeclass instance problem is stuck, it is often due to metavariables
---   Monad ?m.32590
-
--- #eval mapM test_id_f2 [1, 2, 3, 4, 5]
--- typeclass instance problem is stuck, it is often due to metavariables
---   Monad ?m.32590
-#eval mapM (m := Id') test_id_f2 [1, 2, 3, 4, 5]
--- ["test", "test", "test", "test", "test"]
--- ✌️ now we use mapM as map
-
-
--- The Monad Contract
--- 1. First, `pure` should be a left identity of bind, `bind (pure v) f` should be the same as f v`
--- 2. Secondly, `pure` should be a right identity of bind, so `bind v pure` is the same as v. Finally, `bind` should be associative, so `bind (bind v f) g` is the same as `bind v (fun x => bind (f x) g)`.
-
--- `bind (bind v f) g` is the same as `bind v (fun x => bind (f x) g)`.  need deeper understanding
--- try infix expression?
-
-
--- Create a combination of bind op chains
--- expalin in Option Monad
-
--- Bind As Lazy Chaining
--- 	1.	bind as Lazy Chaining:
--- bind can be interpreted as a lazy chaining operator that connects computations within a monadic context. This deferred approach ensures computations are performed only when absolutely necessary.
--- 	2.	Benefits of Lazy Chaining:
--- 	•	It prevents wasteful evaluations, particularly in contexts like Option (to short-circuit unnecessary calculations) or asynchronous computations (to defer costly operations).
--- 	•	It enables flexible recomposition of binding chains, which is crucial for complex dependency management.
--- 	•	It guarantees associativity by allowing operations to be rearranged or grouped without impacting the final result. This ensures consistency in the behavior of the Monadic operations, even in non-trivial pipelines such as nested bind calls.
-
--- This abstraction makes bind particularly well-suited for modeling workflows that involve asynchronous processing, error handling, or managing dependencies dynamically.
+theorem associative_bind_for_for_option (x : Option α) (f: α → Option β) (g: β → Option γ) : bind (bind x f) g = bind x (fun y => bind (f y) g) := by
+  cases x
+  {
+    rfl
+  }
+  {
+    rfl
+  }
