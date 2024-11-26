@@ -441,3 +441,130 @@ def saveIfEven (i : Int) : WithLog Int Int :=
   pure i
 
 #eval mapM saveIfEven [1, 2, 3, 4, 5]
+
+
+-- Exercise Ch5.1
+-- Review the previous definition of mapM (on List seque)
+-- Define a function BinTree.mapM. By analogy to mapM for lists, this function should apply a monadic function to each data entry in a tree, as a preorder traversal. The type signature should be:
+
+
+-- Monad m should be found first for the value (which is type α used for BinTree α)
+-- consider the type signature of mapM
+-- def mapM [Monad m] (f : α → m β) : List α → m (List β)
+#check BinTree
+def BinTree.mapM [Monad m] (f : α → m β): BinTree α → m (BinTree β)
+  | BinTree.leaf => pure BinTree.leaf
+  | BinTree.node l v r =>
+    BinTree.mapM f l >>= fun l' =>
+    f v >>= fun v' =>
+    BinTree.mapM f r >>= fun r' =>
+    pure (BinTree.node l' v' r')
+-- done
+
+-- def the Nat form
+def incrementNat (howMuch : Nat) : State Nat Nat := -- and save prefix sum (not included) in new state
+  get_state >>= fun i =>
+  set_state (i + howMuch) >>= fun () =>
+  pure i
+
+
+-- redifine the output style
+def treeOutPutStyle (b: BinTree Nat) : String :=
+  match b with
+  | BinTree.leaf => ""
+  | BinTree.node l v r => "{" ++ (treeOutPutStyle l) ++ s!" {v} " ++ (treeOutPutStyle r) ++ "}"
+
+instance : ToString (BinTree Nat) where
+  toString bt := treeOutPutStyle bt
+
+-- give some examples
+#eval s!"{exampleTreeLarge}"
+#eval s!"{BinTree.mapM incrementNat exampleTreeLarge 0}"
+-- from this we lean that mapM
+
+-- From this example, we understand that the mapM defined on BinTree specifies a sequential access order.
+-- e.g. if mapM defined as just like the definition above
+-- the increment tree will follow inorder
+-- "(16, {{{ 0 } 1 { 3 }} 6 {{ 10 } 11 { 13 }}})"
+-- not formal ∀ nl ∈ leftree , rl ∈ righttree, nl < v < rl
+
+
+def BinTree.mapMl [Monad m] (f : α → m β): BinTree α → m (BinTree β)
+  | BinTree.leaf => pure BinTree.leaf
+  | BinTree.node l v r =>
+    f v >>= fun v' =>
+    BinTree.mapMl f l >>= fun l' => -- careful for the function name for recursive cal
+    BinTree.mapMl f r >>= fun r' =>
+    pure (BinTree.node l' v' r')
+
+def BinTree.mapMr [Monad m] (f : α → m β): BinTree α → m (BinTree β)
+  | BinTree.leaf => pure BinTree.leaf
+  | BinTree.node l v r =>
+    BinTree.mapMr f l >>= fun l' =>
+    BinTree.mapMr f r >>= fun r' =>
+    f v >>= fun v' =>
+    pure (BinTree.node l' v' r')
+
+-- lets check the difference of 3 definition mapM
+/-
+"(16, {{{ 0 } 1 { 3 }} 6 {{ 10 } 11 { 13 }}})"
+
+-/
+#eval s!"{BinTree.mapM incrementNat exampleTreeLarge 0}"
+/-
+"(16, {{{ 6 } 4 { 7 }} 0 {{ 12 } 10 { 13 }}})"
+
+-/
+#eval s!"{BinTree.mapMl incrementNat exampleTreeLarge 0}"
+/-
+"(16, {{{ 0 } 4 { 1 }} 12 {{ 6 } 10 { 7 }}})"
+
+-/
+#eval s!"{BinTree.mapMr incrementNat exampleTreeLarge 0}"
+
+
+-- The Option Monad Contract
+
+-- Convincing argument thaat the Monad Instance for `Option`
+
+-- Proof of `Id` monad at first
+def Id'' (t : Type) : Type := t
+
+instance : Monad Id'' where
+  pure x := x
+  bind x f := f x
+
+
+-- instance : Monad Option where
+--   pure x := some x
+--   bind opt next := none
+
+theorem left_identity_pure_for_id (x : α) (f: α → Id'' β) : bind (pure x) f = f x := by simp
+theorem right_identity_pure_for_id (x: Id'' α) : bind x pure = x := by simp
+theorem associative_bind_for_id (x : α) (f: α → Id'' β) (g: β → Id'' γ) : bind (bind x f) g = bind x (fun y => bind (f y) g) := by simp
+
+-- Try proof
+instance : Monad Option where
+  pure x := some x
+  bind opt f := match opt with
+    | none => none
+    | some x => f x
+
+theorem left_identity_pure_for_option (x : α) (f: α → Option β) : bind (pure x) f = f x := by
+  rw [Option.pure_def]
+  unfold bind
+  -- sorry
+
+-- But we get to know why
+-- instance : Monad Option where
+--   pure x := some x
+--   bind opt next := none
+-- because in this step  bind opt will always construct from none
+-- with the goal like none = f x (given the fact ∃ f, exact pure, leading to conflicting goals)
+
+
+theorem right_identity_pure_for_option (x: Option α) : bind x pure = x := by
+  sorry
+
+theorem associative_bind_for_for_option (x : α) (f: α → Option β) (g: β → Option γ) : bind (bind x f) g = bind x (fun y => bind (f y) g) := by
+  sorry
