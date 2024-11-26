@@ -130,6 +130,9 @@ theorem binSelectTopEq {α : Type}: ∀ (b : BinTree α), BinTree.selectTop b = 
 -- Example usage
 def exampleTree : BinTree Nat :=
   BinTree.node (BinTree.node BinTree.leaf 1 BinTree.leaf) 2 (BinTree.node BinTree.leaf 3 BinTree.leaf)
+def exampleTreeLarge : BinTree Nat :=
+  BinTree.node exampleTree 4 exampleTree
+
 theorem exampleTreeBound: exampleTree.notEmpty := by
   unfold exampleTree
   simp
