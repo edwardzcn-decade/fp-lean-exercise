@@ -284,17 +284,101 @@ theorem rightIdentityMany (m : Many α) : Many.bind m (Many.one) = m := by
     unfold Many.union
     simp
 
+
+theorem unionAssoc (x y z : Many α) : (x.union y).union z = x.union (y.union z) := by
+  induction x with
+  | none => rfl
+  | more a f ih =>
+    repeat rw [Many.union] -- 3 times
+    rw [ih]
+    -- explanation
+
+
+open Many in
+theorem bindDistributeUnion (x y: Many α) (g: α → Many β) :
+  bind (union x y) g = union (bind x g) (bind y g) := by
+  induction x with
+  | none => rfl
+  | more a f ih =>
+    rw [Many.bind]
+    rw [Many.union]
+    rw [Many.bind]
+    rw [ih]
+    -- now the goal
+    -- (ga)∪(((f())≫=g)∪(y≫=g))=((ga)∪((f())≫=g))∪(y≫=g)
+    -- apply unionAssoc
+    rewrite [unionAssoc (g a) ((f ()).bind g) (y.bind g)]
+    rfl
+
+-- bindAssoc (monad required property)
 theorem associativityMany (m : Many α) (f : α → Many β) (g : β → Many γ) : Many.bind (Many.bind m f) g = Many.bind m (fun x => Many.bind (f x) g) := by
   induction m with
   | none => rfl
   | more a h ih =>
-    repeat rw [Many.bind]
-    rw [←ih]
-    sorry
+    rewrite [Many.bind]
+    rewrite [Many.bind]
+    rewrite [←ih]
+    let x := f a
+    let y := (h ()).bind f
+    -- rw
+    have hx : x = f a := rfl
+    have hy : y = (h ()).bind f := rfl
+    rw [←hx, ←hy]
+    -- sorry now we need bind distribute on union
+    -- goal (x.union y).bind g = (x.bind g).union (y.bind g)
+    rw [bindDistributeUnion x y g]
+
+-- now we prove Many as a monad
+instance : Monad Many where
+  pure := Many.one
+  bind := Many.bind
 
 
-    -- (Many.more a h).bind fun x => (f x).bind g
+def addsTo (goal : Nat) : List Nat → Many (List Nat)
+  | [] =>
+    if goal == 0 then
+      pure []
+    else
+      Many.none
+  | x :: xs =>
+    if x > goal then
+      addsTo goal xs
+    else
+      (addsTo goal xs).union
+        (addsTo (goal - x) xs >>= fun answer =>
+         pure (x :: answer))
 
-    -- ((f a).bind g).union ((h ()).bind fun x => (f x).bind g)
-    -- unfold Many.bind
-    -- simp
+
+instance [ToString α] : ToString (Many α) where
+  toString m := toString (m.takeAll)
+
+-- test
+#eval s!"{addsTo 4 [1, 3, 5, 2, 1, 2]}"
+
+inductive NeedsSearch
+  | div
+  | choose
+
+def applySearch : NeedsSearch → Int → Int → Many Int
+  | NeedsSearch.choose, x, y =>
+    Many.fromList [x, y]
+  | NeedsSearch.div, x, y =>
+    if y == 0 then
+      Many.none
+    else Many.one (x / y)
+open Expr Prim NeedsSearch
+
+#check Prim
+
+
+def choose_plus_test := prim (other choose) (const (-5)) (const 5)
+
+#eval (evaluateM applySearch (prim plus (const 1) (prim (other choose) (const 2) (const 5)))).takeAll
+def choose_choose_test := (prim plus (prim (other choose) (const 1) (const 2)) (prim (other choose) (const 7) (const 8)))
+#eval (evaluateM applySearch choose_choose_test).takeAll
+#eval (evaluateM applySearch (prim (other div) (const 90) (prim plus (prim (other choose) (const (-5)) (const 5)) (const 5)))).takeAll
+#eval evaluateM applySearch (prim plus (prim (other choose) (const (-5)) (const 5)) (const 5))
+#eval evaluateM applySearch (prim (other choose) (const (-5)) (const 5))
+-- bind in Monad Many unions all the results
+#eval evaluateM applySearch (prim plus choose_plus_test choose_plus_test)
+-- [10 ,0 ,0 10]
