@@ -1,3 +1,4 @@
+import Ch5.MonadClass
 inductive Expr (op: Type) where
   | const : Int → Expr op
   | prim : op → Expr op → Expr op → Expr op
@@ -382,3 +383,143 @@ def choose_choose_test := (prim plus (prim (other choose) (const 1) (const 2)) (
 -- bind in Monad Many unions all the results
 #eval evaluateM applySearch (prim plus choose_plus_test choose_plus_test)
 -- [10 ,0 ,0 10]
+
+-- Custom Environments can be used as Monad
+-- user-extensible and providing a mapping from strings to a function
+-- give definition of Reader Monad in lean
+-- pure/basic :: λe.e
+-- for arithmic bops :: λe.f(e)+g(e)
+-- for custrom ops :: λe.h(f(e) g(e))
+
+def Reader (ρ : Type) (α : Type) := ρ → α
+def read : Reader ρ ρ := fun env => env
+
+def Reader.pure (x : α) : Reader ρ α := fun _ => x
+-- def Reader.bind : (Reader ρ α) → (α → Reader ρ β) → (Reader ρ β) := sorry
+
+-- easier to understanding by expanding the definitions of `Reader`
+-- def Reader.bind : ρ → α → (α → ρ → β) → (ρ → β) :=
+-- sorry
+
+-- def Reader.bind {ρ : Type} {α : Type} {β : Type}
+--   (result : ρ → α) (next : α → ρ → β) : ρ → β :=
+--   fun env => next (result env) env
+
+def Reader.bind (result: Reader ρ α) (next: α → Reader ρ β) : Reader ρ β :=
+  fun env => next (result env) env
+-- satisfy
+instance : Monad (Reader rho) where
+  pure := Reader.pure
+  bind := Reader.bind
+-- recall Id.bind
+-- instance : Monad Id'' where
+--   pure x := x
+--   bind x f := f x
+attribute [simp] Reader.bind Reader.pure
+-- try proof Reader Monad property
+def leftIdentityReader (x : α) (f : α → Reader ρ β) : bind (pure x) f = f x := by rfl
+def rightIdentityReader (m : Reader ρ α) : Reader.bind m pure = m := by rfl
+def associavityReader (m : Reader ρ α) (f : α → Reader ρ β) (g : β → Reader ρ γ) : bind (bind m f) g = bind m (fun x => bind (f x) g) := by rfl
+
+
+--  pass Env as pair of (name, funciton to apply on two Ints e.g. max)
+abbrev Env : Type := List (String × (Int → Int → Int))
+def exampleEnv : Env := [("max", max), ("min", min), ("mod", fun x y => x % y)]
+
+def applyPrimReader (op : String) (x : Int) (y : Int) : Reader Env Int :=
+  read >>= fun env =>
+  match env.lookup op with
+  | none => Reader.pure 0
+  | some f => Reader.pure (f x y)
+
+#check applyPrimReader -- String → Int → Int → Reader Env Int
+#check applySearch -- NeedsSearch → Int → Int → Many Int
+
+-- compare to applySearch
+-- FOR Many Monad using union and Many.bind
+-- def applySearch : NeedsSearch → Int → Int → Many Int
+--   | NeedsSearch.choose, x, y =>
+--     Many.fromList [x, y]
+--   | NeedsSearch.div, x, y =>
+--     if y == 0 then
+--       Many.none
+--     else Many.one (x / y)
+-- open Expr Prim NeedsSearch
+
+-- call in evaluateM (above two are all applySpecial on special monad)
+-- def applyPrim [Monad m] (applySpecial : special → Int → Int → m Int) : Prim special → Int → Int → m Int
+--   | Prim.plus, x, y => pure (x + y)
+--   | Prim.minus, x, y => pure (x - y)
+--   | Prim.times, x, y => pure (x * y)
+--   | Prim.other op, x, y => applySpecial op x y
+
+
+
+open Expr Prim in
+#eval evaluateM applyPrimReader (prim (other "max") (prim plus (const 5) (const 4)) (prim times (const 3) (const 2))) exampleEnv
+
+
+-- Exercise
+-- 5.2.1
+-- Check the monad contract for State σ and Except ε (Result ε in my implementation).
+-- instance : Monad (Result ε) where
+--   pure x := Result.ok x
+--   bind res f := match res with
+--     | Result.error e => Result.error e
+--     | Result.ok x => f x
+namespace MonadContractProof
+
+theorem leftIdentityResult (x : α) (f : α → Result ε β) : bind (pure x) f = f x := by rfl
+theorem rightIdentityResult (m : Result ε α) : bind m pure = m := by
+  cases m with
+  | error e => rfl
+  | ok x => rfl
+theorem associativityResult (m : Result ε α) (f : α → Result ε β) (g : β → Result ε γ) : bind (bind m f) g = bind m (fun x => bind (f x) g) := by
+  cases m with
+  | error e => rfl
+  | ok x => rfl
+theorem leftIdentityState (x : α) (f : α → State α β) : bind (pure x) f = f x := by rfl
+theorem rightIdentityState (m: State σ α) : bind m pure = m := by rfl
+theorem associativityState (m : State σ α) (f : α → State σ β) (g : β → State σ γ) : bind (bind m f) g = bind m (fun x => bind (f x) g) := by rfl
+
+end MonadContractProof
+
+
+-- def Reader (ρ : Type) (α : Type) := ρ → α
+-- Readers with Failure
+def ReaderOption (ρ : Type) (α : Type) : Type := ρ → Option α
+-- Monad function with option return
+def readOption : ReaderOption ρ ρ := fun env => some env
+def ReaderOption.pure (x : α) : ReaderOption ρ α := fun _ => some x
+def ReaderOption.bind (result : ReaderOption ρ α) (next : α → ReaderOption ρ β) : ReaderOption ρ β :=
+  fun env => match result env with
+    | none => none
+    | some x => next x env
+instance : Monad (ReaderOption ρ) where
+  pure := ReaderOption.pure
+  bind := ReaderOption.bind
+
+theorem leftIdentityReaderOption (x : α) (f : α → ReaderOption ρ β) : bind (pure x) f = f x := by rfl
+theorem rightIdentityReaderOption' (m : ReaderOption ρ α) : ReaderOption.bind m ReaderOption.pure = m := by
+  funext env
+  unfold ReaderOption.pure
+  unfold ReaderOption.bind
+  cases m env with
+  | none => simp
+  | some y => simp
+theorem rightIdentityReaderOption (m : ReaderOption ρ α) : bind m pure = m := by
+  -- `Monad.toBind.1` appears
+  unfold bind
+  funext env
+  cases m env with
+  | none => sorry
+  | some x => sorry
+theorem associavityReaderOption (m : ReaderOption ρ α) (f : α → ReaderOption ρ β) (g : β → ReaderOption ρ γ) : bind (bind m f) g = bind m (fun x => bind (f x) g) := by
+  funext env
+  unfold bind
+  cases m env with
+  | none => sorry
+  | some x => sorry
+
+def ReaderExcept (ε : Type) (ρ : Type) (α : Type) : Type := ρ → Except ε α
+-- Monad function with Except return
