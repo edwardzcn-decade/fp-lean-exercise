@@ -17,6 +17,9 @@ name = "Ch4"
 [[lean_lib]]
 name = "Ch5"
 
+[[lean_lib]]
+name = "Ch6"
+
 [[lean_exe]]
 name = "fp-lean-exercise"
 root = "Main"
