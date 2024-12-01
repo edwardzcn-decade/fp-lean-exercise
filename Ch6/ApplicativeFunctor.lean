@@ -78,10 +78,12 @@ def Nat.asFastPos? (n : Nat) : Option FastPos :=
 structure CheckedInput (thisYear : Nat) : Type where
   name : {n : String // n ≠ ""}
   birthYear : {y : Nat // y > 1900 ∧ y ≤ thisYear}
+deriving Repr
 
 inductive Validate (ε α : Type) : Type where
   | ok : α → Validate ε α
   | errors : NonEmptyList ε → Validate ε α
+deriving Repr
 
 instance : Functor (Validate ε) where
   map f
@@ -108,7 +110,49 @@ instance : Applicative (Validate ε) where
 def reportError (f : Field) (msg : String) : Validate (Field × String) α :=
   .errors { head := (f, msg), tail := [] }
 
+
+-- {n : String // n ≠ ""} describes subtype of String which is not empty, used to construct Validate
+-- the return Validate ε α
+-- polymorphic ε turns to Field × String as error message
+-- polymorphic α turns to String subtype (String with property that it is not empty) using `{}` notion
+
+
+-- use if else branch to construct Validate
 def checkName (name : String) : Validate (Field × String) {n : String // n ≠ ""} :=
   if h : name = "" then
-    reportError "name" "Required"
-  else pure ⟨name, h⟩
+    reportError "name" "Required" -- just like return Result.error e
+  else pure ⟨name, h⟩ -- just like return Result.ok x (pure method of Result). Here we need add with proof object (n ≠ "")
+
+--  Monad bind?
+def Validate.andThen (val : Validate ε α) (next : α → Validate ε β)  : Validate ε β :=
+  match val with
+  | .errors errs => .errors errs
+  | .ok x => next x
+
+-- use match to construct Validate
+def checkYearIsNat (year : String) : Validate (Field × String) Nat :=
+  match year.trim.toNat? with
+  | none =>
+    reportError "birth year" "Must be a natural number"
+  | some y => pure y
+
+def checkBirthYear (thisYear year: Nat) : Validate (Field × String) {y : Nat // y > 1900 ∧ y ≤ thisYear} :=
+  -- if h: year > 1900 ∧ year ≤ thisYear then
+  --   pure ⟨year, by simp [*]⟩
+  -- else reportError "year" "Out of range"
+  if h : year > 1900 then
+    if h' : year ≤ thisYear then
+      pure ⟨year, ⟨h, h'⟩⟩
+    else reportError "birth year" s!"Must be no later than {thisYear}"
+  else reportError "birth year" "Must be after 1900"
+
+-- combine the three components
+def checkInput (year : Nat) (rawinput: RawInput) : Validate (Field × String) (CheckedInput year) :=
+  pure CheckedInput.mk <*>
+    checkName rawinput.name <*>
+    (checkYearIsNat rawinput.birthYear).andThen fun birthYearAsNat =>
+      checkBirthYear year birthYearAsNat
+
+#eval checkInput 2023 {name := "David", birthYear := "1984"}
+#eval checkInput 2023 {name := "", birthYear := "2045"}
+#eval checkInput 2023 {name := "David", birthYear := "syzygy"}
